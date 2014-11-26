@@ -1,0 +1,42 @@
+﻿/****************
+*
+*PoCA散射径迹重建算法
+* Input:
+*	vector<_Point>*
+*	Image*
+* Output/Calls:(to Image.fill)
+*	_Point* PoCA
+*	double  scatter_angle
+* Return:(bool)
+*	is_event_counted;
+*
+**************/
+bool PoCA(vector<_Point>* _MRPCs)
+{
+	assert _MRPCs->size() == _Num_of_MRPC;//4
+
+	_Point p0 = _MPRCs[0];
+	_Point p1 = _MPRCs[1];
+	_Point q0 = _MPRCs[2];
+	_Point q1 = _MPRCs[3];
+
+	Vector& u = p1 - p0;
+	Vector& v = q1 - p0;
+	Vector& w = p0 - q0;
+
+	double a = u*u;
+	double b = u*v;
+	double c = v*v;
+	double d = u*w;
+	double e = v*w;
+
+	_Point pc = p0 + (b*e-c*a)/(a*c-b*b)*u;
+	_Point qc = q0 + (a*e-b*d)/(a*c-b*b)*v;
+	
+	double scatter_angle = acos(
+		fabs(u*v)/(u.mod()*v.mod())
+		);
+
+	return this->fill(0.5*(pc + qc) , scatter_angle);
+
+}

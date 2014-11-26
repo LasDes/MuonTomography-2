@@ -1,0 +1,79 @@
+﻿/***************
+*
+* PoCA图像重建类 - class ：(public Histogram?
+* ClassName : PoCA_Image  
+*
+* 数据域：
+*  整体信息:
+*   重建区域尺寸
+*	_X_SCALE _Y_SCALE
+*   区域块数量
+*	_X_NUM _Y_NUM
+*   区域块数组_Block**
+*  	
+*  区域块 struct - Block
+*   散射角记录
+*	vector<double>* scatter_angle
+*   散射角均方根
+*	scatter_angle_rms
+*  
+*  RMS-FLAG
+* 	_is_rmsed	== 判断均方根是否为零
+*
+* 函数域
+*  构造器 
+*	Image() 
+*  析构器 
+*	~Image()
+*  Getter & Setter
+*  初始化
+*	initial()
+*  PoCA散射重建
+*	PoCA(vector<_Point>*)
+*  数据采集
+*	locateX(double)
+*	locateY(double)
+*	fill(_Point*,double)
+*  均方根处理
+*	rms()
+*  绘图
+*	plot()
+**********/
+int locateX(double x_value){
+	if(x_value == this->_X_SCALE)
+		return this->_X_NUM - 1;
+	return (int)(
+	  this->_X_NUM * x_value / this->_X_SCALE
+	);
+}
+int locateY(double y_value){
+	if(y_value == this->_Y_SCALE)
+		return this->_Y_NUM - 1;
+	return (int)(
+	  ((double)this->_Y_NUM) * y_value / this->_Y_SCALE
+	);
+}
+bool fill(_Point* _PoCA , double _scatter_angle){
+	Block& block = 
+	  this->_Block[locateX(_PoCA->x)][locateY(_PoCA->y)];
+	block->scatter_angle->push_back(_scatter_angle);
+}
+
+void rms(){
+	if(this->_is_rmsed) return;
+	
+	for(int i = 0 ; i < this->_X_NUM ; i++){
+	  for(int j = 0 ; j < this->_Y_NUM ; j ++){
+	    vector<double>& angle = 
+		_Block[i][j]->scatter_angle;
+	    double& rms = 
+		_Block[i][j]->scatter_angle_rms;
+	    for(vector<double>::Iterator itr = angle->begin() ;
+		itr != angle->end(); itr ++)
+	    	rms += *itr;
+	    rms = sqrt(rms / (double)angle.size());	
+	  }
+	}
+	this->_is_rmsed = true;	
+}
+
