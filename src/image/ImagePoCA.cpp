@@ -7,22 +7,22 @@
 
 #include "ImagePoCA.h"
 
-Image_PoCA::Image_PoCA() {
-	this->_MRPCs_D = 600;
+ImagePoCA::ImagePoCA() {
+	this->_MRPCs_D = 400;
 	this->_DETECT_H = 200;
 	this->_X_SCALE = 400;
 	this->_Y_SCALE = 400;
-	this->_X_NUM = 20;
-	this->_Y_NUM = 20;
+	this->_X_NUM = 80;
+	this->_Y_NUM = 80;
 	_Block2 = new Block*[_X_NUM];
 	this->_is_rmsed = false;
 	this->initial();
 }
 
-Image_PoCA::~Image_PoCA() {
+ImagePoCA::~ImagePoCA() {
 	// TODO Auto-generated destructor stub
 }
-void Image_PoCA::initial(){
+void ImagePoCA::initial(){
 	for(int x_index = 0 ; x_index < _X_NUM ; x_index ++){
 		_Block2[x_index] = new Block[_Y_NUM];
 		for(int y_index = 0 ; y_index < _Y_NUM ; y_index ++){
@@ -32,7 +32,7 @@ void Image_PoCA::initial(){
 	}
 }
 
-bool Image_PoCA::PoCA(vector<_Point>* _MRPC){
+bool ImagePoCA::PoCA(vector<_Point>* _MRPC){
 	if(_MRPC->size() != 4)
 		return false;
 
@@ -42,7 +42,7 @@ bool Image_PoCA::PoCA(vector<_Point>* _MRPC){
 	_Point q1 = (*_MRPC)[3];
 
 	Vector u = (p1 - p0);
-	Vector v = (q1 - p0);
+	Vector v = (q1 - q0);
 	Vector w = (p0 - q0);
 
 	double a = u*u;
@@ -53,7 +53,7 @@ bool Image_PoCA::PoCA(vector<_Point>* _MRPC){
 
 	if(a*c-b*b == 0)
 		return false;
-	Vector _pc = (b*e-c*a)  / (a*c-b*b) * u;
+	Vector _pc = (b*e-c*d)  / (a*c-b*b) * u;
 	Vector pc = (p0 + _pc);
 	Vector _qc =  (a*e-b*d)/(a*c-b*b)*v;
 	Vector qc = (q0 + _qc);
@@ -79,14 +79,14 @@ bool Image_PoCA::PoCA(vector<_Point>* _MRPC){
 	return false;
 }
 
-int Image_PoCA::locateX(double x_value){
+int ImagePoCA::locateX(double x_value){
 	if(x_value == this->_X_SCALE)
 		return this->_X_NUM - 1;
 	return (int)(
 	  this->_X_NUM * x_value / this->_X_SCALE
 	);
 }
-int Image_PoCA::locateY(double y_value){
+int ImagePoCA::locateY(double y_value){
 	if(y_value == this->_Y_SCALE)
 		return this->_Y_NUM - 1;
 	return (int)(
@@ -98,12 +98,12 @@ int Image_PoCA::locateY(double y_value){
  *		加入初级噪声处理
  * 		--拒绝超出探测区域的PoCA
  * */
-bool Image_PoCA::fill2(_Point* _PoCA , double _scatter_angle){
+bool ImagePoCA::fill2(_Point* _PoCA , double _scatter_angle){
 	/*
 	if(_PoCA->z < this->_MRPCs_D ||
 			_PoCA->z > this->_DETECT_H + this->_MRPCs_D)
 		return false;
-	*/
+	 */
 	int x_index = locateX(_PoCA->x);
 	int y_index = locateY(_PoCA->y);
 	if(x_index < 0 || x_index >= _X_NUM)
@@ -115,7 +115,7 @@ bool Image_PoCA::fill2(_Point* _PoCA , double _scatter_angle){
 	block.scatter_angle->push_back(_scatter_angle);
 	return true;
 }
-void Image_PoCA::rms_calc(){
+void ImagePoCA::rms_calc(){
 	if(this->_is_rmsed) return;
 
 	for(int i = 0 ; i < this->_X_NUM ; i++){
@@ -135,7 +135,7 @@ void Image_PoCA::rms_calc(){
 	}
 	this->_is_rmsed = true;
 }
-void Image_PoCA::plot(){
+void ImagePoCA::plot(){
 	this->rms_calc();
 	cout<<endl
 			<<"=======Image========"
@@ -155,9 +155,10 @@ void Image_PoCA::plot(){
 	cout<<"=======Image========"
 			<<endl;
 }
-void Image_PoCA::plot_simple(){
+void ImagePoCA::plot_simple(fstream& _fout){
 	this->rms_calc();
-	cout<<endl
+
+	_fout<<endl
 			<<"=======Image========"
 			<<endl;
 	for(int i = 0 ; i < this->_X_NUM ; i++){
@@ -166,15 +167,15 @@ void Image_PoCA::plot_simple(){
 					*(_Block2[i][j].scatter_angle);
 			double& rms =
 					_Block2[i][j].scatter_angle_rms;
-			cout<<"(";
+
 			if(angle.empty() || rms < 0.001)
-				cout<<"L";
+				_fout<<"□";
 			else
-				cout<<"H";
-			cout<<")"<<" ";
+				_fout<<"■";
+			_fout<<" ";
 		}//for_x_i
-		cout<<endl;
+		_fout<<endl;
 	}//for_y_j
-	cout<<"=======Image========"
+	_fout<<"=======Image========"
 			<<endl;
 }

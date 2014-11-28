@@ -22,12 +22,13 @@
 #include "Muon.h"
 #include "MuonTracer.h"
 
-#include "util/Histo1.h"
-#include "util/LeadCuboid.h"
-#include "util/Vector.h"
-#include "util/Rand.h"
+#include "../util/Histo1.h"
+#include "../util/LeadCuboid.h"
+#include "../util/Vector.h"
+#include "../util/Rand.h"
 
-#include "image/ImagePoCA.h"
+#include "../image/ImagePoCA.h"
+
 
 typedef Vector _Point;
 
@@ -79,17 +80,18 @@ public:
 	Histo1* get_through_L_h1();
 	vector<LeadCuboid>* get_lead();
 	void ImagePlot();
-	void ImageSimplePlot();
+	void ImageSimplePlot(fstream&);
 
 	//Simulation
-	void muon_in(long times ,vector<short>* probes);
-	enum Function
-		{THETA_HIST ,
-			DELTA_THETA ,
+	typedef short _Task;
+	void muon_in(long times ,vector<_Task>* probes);
+	enum ETask
+		{THETA_OUT ,
 			POINT_OUT ,
 			THROUGH_LEAD ,
 			MULTIPLE_SCATTER,
-			PoCA_IMAGING};
+			PoCA_IMAGING,
+			DELTA_THETA };
 
 private:
 	//计算单次入射角分辨率
@@ -171,14 +173,15 @@ private:
 	Histo1* through_L_h1;
 
 	//图像重建类
-	Image_PoCA* _image;
+	ImagePoCA* _image;
 
 	/**
 	 * 	统一数据流
 	 * 		MORE: 考虑多文件输出需求，扩充为一组数据流
 	 * */
+	fstream _fout[MuonTest::DELTA_THETA];
+	fstream* fout;
 	fstream point_out;
-	fstream fout;
 
 };
 

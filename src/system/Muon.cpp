@@ -36,7 +36,7 @@ Muon::~Muon() {
 double Muon::theta_gen_DEFAULT(){
 	double r,z,u;
 	do{
-		r = Rand::Uniform(2*asin(1));
+		r = Rand::Uniform(asin(1));
 		z = cos(r)*cos(r);
 		u = Rand::Uniform();
 	}while(u > z);

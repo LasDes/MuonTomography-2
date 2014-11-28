@@ -22,6 +22,7 @@ using namespace std;
  * 成像系统默认构造函数
  * */
 MuonTest::MuonTest(){
+	this->fout = NULL;
 	/*
 	 * 系统参数设定
 	 * */
@@ -130,10 +131,10 @@ void MuonTest::reset(){
 */
 double MuonTest::delta_theta_in(Muon *m){
 	double d_t_i;
-	d_t_i = (this->_X_DELTA * fabs(cos(m->get_phi())))
-			+ (this->_Y_DELTA * fabs(sin(m->get_phi())));
-	d_t_i *= cos(m->get_theta()) * cos(m->get_theta());
-	return d_t_i / _MRPCs_D / sqrt(2);
+	d_t_i = pow(this->_X_DELTA,2) * pow(cos(m->get_phi()),2)
+			+ pow(this->_Y_DELTA,2) * pow(sin(m->get_phi()),2);
+	d_t_i = sqrt(2.0 * d_t_i) * cos(m->get_theta()) * cos(m->get_theta());
+	return d_t_i / _MRPCs_D ;
 }
 /*模拟muon穿过长方体铅块
  * 尺寸length*width*height(mm^3)
@@ -175,7 +176,8 @@ double MuonTest::through_lead_cuboid(Muon* muon,LeadCuboid lead){
 
 	double delta_H = 0.0;
 
-	const double dH = lead.height / 5000.0; //对高度细分5000层
+	const double LAYERS_NUM = 1000;
+	const double dH = lead.height / LAYERS_NUM; //对高度细分1000层
 
 	//下降dH的水平坐标偏移量
 	const double dx = dH*tan(muon->get_theta())*cos(muon->get_phi());
@@ -197,7 +199,7 @@ double MuonTest::through_lead_cuboid(Muon* muon,LeadCuboid lead){
 
 	//逐层判断muon是否经过铅块
 	//后期增加提前结束循环判断，减少运算量
-	for(int i = 0 ; i < 5000 ; i++){
+	for(int i = 0 ; i < LAYERS_NUM ; i++){
 		if( x < lead.x_center + lead.length / 2.0
 				&& x > lead.x_center - lead.length / 2.0 ){
 			if( y < lead.y_center + lead.width / 2.0
@@ -251,9 +253,9 @@ void MuonTest::multiple_scatter(Muon *m_in , Muon* m_out,
 		 * */
 		_Point& p_in = *(this->_M_tracer->get_Lead_in()->begin());
 		_Point& p_out = *(this->_M_tracer->get_Lead_out()->begin());
-		m_out->set_x(p_in.x * 0.5 + p_out.x * 0.5 + Rand::Uniform(-5,5));
-		m_out->set_y(p_in.y * 0.5 + p_out.y * 0.5 + Rand::Uniform(-5,5) );
-		m_out->set_z(p_in.z * 0.5 + p_out.z * 0.5 + Rand::Uniform(-5,5));
+		m_out->set_x(p_in.x * 0.5 + p_out.x * 0.5 +Rand::Uniform(-3,3));
+		m_out->set_y(p_in.y * 0.5 + p_out.y * 0.5+Rand::Uniform(-3,3) );
+		m_out->set_z(p_in.z * 0.5 + p_out.z * 0.5+Rand::Uniform(-3,3) );
 		m_out->set_theta(fabs(Rand::Gaussian(0.00271 * sqrt(L_origin))));
 		m_out->set_phi(Rand::Uniform(4*asin(1)));
 	}
@@ -272,7 +274,7 @@ void MuonTest::multiple_scatter(Muon *m_in , Muon* m_out,
  * 2014.11.21: 加入switch-enum机制
  * 	提供外部接口对探测功能进行选择控制
 */
-void MuonTest::muon_in(long _total_times ,vector<short>* probes){
+void MuonTest::muon_in(long _total_times ,vector<_Task>* probes){
 
 	Muon* muon;
 
@@ -310,34 +312,49 @@ void MuonTest::muon_in(long _total_times ,vector<short>* probes){
  * */
 						switch(*probeItr){
 
+						//统计有效入射天顶角
+						case THETA_OUT:
+							//天顶角数据记录
+							if( fout != &_fout[MuonTest::THETA_OUT]){
+								this->_fout[THETA_OUT].open("Theta-In.dat",ios::out);
+								this->fout = &_fout[THETA_OUT];
+							}
+							*fout<<muon->get_theta()<<endl;
+							//天顶角统计直方图
+							if( this->theta_h1)
+								this->theta_h1 = new Histo1(0,asin(1),100);
+							this->theta_h1->fill(muon ->get_theta());
+
+						break;
+
+
 						//建立muon铅块内部路程L分布直方图
 						case THROUGH_LEAD:
+							//确定建立输出文件流
+							if( this->fout != &this->_fout[MuonTest::THROUGH_LEAD]){
+								this->_fout[MuonTest::THROUGH_LEAD].open("Length_inLead.txt",ios::out);
+								this->fout = &this->_fout[MuonTest::THROUGH_LEAD];
+							}
+							//判断是否添加默认铅块
 							this->add_default_lead();
-							if(! this->through_L_h1)
-								this->through_L_h1 = new Histo1(0,1,100);
-							this->through_L_h1->fill(this->through_lead(muon));
+							//输出铅块内路程统计到文件
+							if(this->_M_tracer->get_through_lead_L() < 0.0)
+								this->_M_tracer->set_through_lead_L(this->through_lead(muon));
+							if(this->_M_tracer->get_through_lead_L() > 0.0)
+								*fout<<this->_M_tracer->get_through_lead_L()<<endl;
 
-							if(! this->point_out)
-								this->point_out.open("lead_in_point.dat",ios::out);
-							for(vector<_Point>::iterator itr =  this->_M_tracer->get_Lead_in()->begin() ;
-									itr != this->_M_tracer->get_Lead_in()->end() ; itr++)
-								point_out<<(*itr).x<<" "<<(*itr).y<<" "<<(*itr).z<<endl;
 						break;
+
 
 						//输出muon入射到系统某横截平面入射点分布
 						case POINT_OUT:
-							if(! this->point_out)
-								this->point_out.open("point_out.dat",ios::out);
+							if( this->fout != &this->_fout[MuonTest::POINT_OUT]){
+								this->_fout[MuonTest::POINT_OUT].open("Point-in.dat",ios::out);
+								this->fout = &this->_fout[MuonTest::POINT_OUT];
+							}
 							point = muon ->flight_point(
 									this->_MRPCs_D+this->_DETECT_H  / 2.0);
-							this->point_out<<point[0]<<" "<<point[1]<<endl;
-						break;
-
-						//建立天顶角分布直方图
-						case THETA_HIST:
-							if( ! this->theta_h1)
-								this->theta_h1 = new Histo1(0,1,100);
-							this->theta_h1->fill(muon ->get_theta());
+							*fout<<point[0]<<" "<<point[1]<<endl;
 						break;
 
 						//累加有效muon的单次入射角分辨率
@@ -350,22 +367,21 @@ void MuonTest::muon_in(long _total_times ,vector<short>* probes){
 						 * */
 						case PoCA_IMAGING:
 							if(! this->_image)
-								this->_image = new Image_PoCA;
+								this->_image = new ImagePoCA;
 							_image->set_DETECT_H(this->_DETECT_H);
 							_image->set_MRPCs_D(this->_MRPCs_D);
 
+
 							this->add_default_lead();
 							Muon* m_out = new Muon;
-							//Debug11261807
+
 							this->initial_muon_out(muon,m_out);
 
 							for(vector<LeadCuboid>::iterator itr = this->_Lead->begin();
 									itr != this->_Lead->end() ; itr++)
-								this->multiple_scatter(muon,m_out,
-										*itr);
+								this->multiple_scatter(muon,m_out,*itr);
 
 							this->_M_tracer->set_muon_out(m_out);
-							this->_M_tracer->intial_MRPC();
 
 							this->_M_tracer->autoset_MRPC_record(
 									this->_MRPCs_D, this->_DETECT_H);
@@ -374,6 +390,8 @@ void MuonTest::muon_in(long _total_times ,vector<short>* probes){
 						}//switch_功能选择
 					}//for_probeItr_多功能选择控制循环
 				}//if_判断入射muon是否穿过MRPC板
+			delete muon;muon = NULL;
+			delete this->_M_tracer;this->_M_tracer = NULL;
 		}//for_times
 
 	cout<<"Simulation Completed!"<<endl;
@@ -434,15 +452,18 @@ void MuonTest::ImagePlot(){
 	}
 	_image->plot();
 }
-void MuonTest::ImageSimplePlot(){
+void MuonTest::ImageSimplePlot(fstream& _fout){
 	if( !this->_image){
 		cout<<"!!!No image!!!"<<endl;
 		return;
 	}
-	_image->plot_simple();
+	_image->plot_simple(_fout);
 }
 
 //Setter
+/**
+ * 无散射情况下的Muon，即默认出射Muon
+ * */
 bool MuonTest::initial_muon_out(Muon* _m_in , Muon* _m_out){
 	if(!_m_in || !_m_out)
 		return false;

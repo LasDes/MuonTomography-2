@@ -6,8 +6,6 @@
 // Description : 对已有类进行测试，包含包内其他类的Demo函数
 //============================================================================
 
-#include "MuonTest.h"
-
 #include<iostream>
 #include<fstream>
 #include<math.h>
@@ -15,6 +13,7 @@
 #include<stdlib.h>
 #include<vector>
 
+#include "system/MuonTest.h"
 #include "util/Histo1.h"
 #include "util/Vector.h"
 #include "util/Rand.h"
@@ -61,7 +60,7 @@ void MuonTestDemo(){
 	SYSTEM.set_MRPC_dx(5);
 	SYSTEM.set_MRPC_dy(5);
 	//设置成像系统参数-MRPC间距-探测区域高度
-	SYSTEM.set_SYSTEM_d(400);
+	SYSTEM.set_SYSTEM_d(600);
 	SYSTEM.set_SYSTEM_h(200);
 
 /**
@@ -70,8 +69,8 @@ void MuonTestDemo(){
  * 		- 模拟入射次数
  * 		- 系统功能设定
  * */
-	int simulate_times = (int)pow(10,5);
-	vector<short> probe;
+	int simulate_times = (int)pow(10,6);
+	vector<MuonTest::_Task> probe;
 
 /**
  * 系统角分辨率计算
@@ -82,7 +81,7 @@ void MuonTestDemo(){
  * 系统角分布直方图
  * */
 	//SYSTEM.set_theta_h1(0,asin(1.0),100);
-	//probe.push_back(SYSTEM.THETA_HIST);
+	//probe.push_back(SYSTEM.THETA_OUT);
 
 /**
  * 系统中心截面入射点分布
@@ -94,18 +93,16 @@ void MuonTestDemo(){
 /**
  * 铅块原始入射模型测试
  * */
-	//SYSTEM.set_through_L_h1(0,140,1400);
+	//SYSTEM.set_through_L_h1(0,140,140);
+	//SYSTEM.add_lead(new LeadCuboid(350,350,100,200,200));
 	//probe.push_back(SYSTEM.THROUGH_LEAD);
 
 /**
  * PoCA图像重建模型测试
  * */
-	LeadCuboid* lead_1;
-	lead_1 = new LeadCuboid(100,100,100,100,100);
-	SYSTEM.add_lead(lead_1);
-	LeadCuboid* lead_2;
-	lead_2 = new LeadCuboid(100,100,100,300,300);
-	SYSTEM.add_lead(lead_2);
+	SYSTEM.add_lead(new LeadCuboid(30,70,100,100,100));
+	SYSTEM.add_lead(new LeadCuboid(100,100,100,300,300));
+	SYSTEM.add_lead(new LeadCuboid(50,100,100,100,300));
 	probe.push_back(SYSTEM.PoCA_IMAGING);
 
 	SYSTEM.muon_in(simulate_times , &probe);
@@ -122,12 +119,15 @@ void MuonTestDemo(){
 				<<100 * SYSTEM.get_count_system() / (double)simulate_times
 				<<endl;
 		SYSTEM.reset();
-	}*/
+	}
+	*/
 
 	cout<<"-----------HistogramPlot---------------"<<endl;
 
 	//SYSTEM.ImagePlot();
-	SYSTEM.ImageSimplePlot();
+	fstream fout;
+	fout.open("Image-PoCA.txt",ios::out);
+	SYSTEM.ImageSimplePlot(fout);
 
 	//SYSTEM.get_through_L_h1()->plot();
 	//cout<<"--------------"<<endl

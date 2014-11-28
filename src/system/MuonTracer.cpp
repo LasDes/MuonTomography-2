@@ -9,26 +9,37 @@
 
 MuonTracer::MuonTracer(Muon* muon_in) {
 	this->_M_in = muon_in;
+	this->_M_out = NULL;
+
 	this->_Lead_in = NULL;
 	this->_Lead_out = NULL;
+
+	this->_L_through_lead = -1.0;		//用负值表示原始穿越长度处于未计算状态
+
 	this->_MRPC_record = NULL;
-	this->_M_out = NULL;
+
 }
 
 MuonTracer::~MuonTracer() {
 	// TODO Auto-generated destructor stub
 }
 
-void MuonTracer::intial_MRPC(){
-	this->_MRPC_record = new vector<_Point>;
+void MuonTracer::initial_MRPC(){
+	if(! this->_MRPC_record)
+		this->_MRPC_record = new vector<_Point>;
 }
 
 void MuonTracer::initial_Lead(){
-	this->_Lead_in = new vector<_Point>;
-	this->_Lead_out = new vector<_Point>;
+	if(! this->_Lead_in)
+		this->_Lead_in = new vector<_Point>;
+	if(! this->_Lead_out)
+		this->_Lead_out = new vector<_Point>;
 }
 
 //Getter
+double MuonTracer::get_through_lead_L(){
+	return this->_L_through_lead;
+}
 vector<_Point>* MuonTracer::get_MRPC_record(){
 	if(! this->_MRPC_record)
 		this->_MRPC_record = new vector<_Point>;
@@ -45,6 +56,8 @@ vector<_Point>* MuonTracer::get_Lead_out(){
 bool MuonTracer::autoset_MRPC_record(double _d , double _h){
 	if(this->_M_out == NULL)
 		return false;
+
+	this->initial_MRPC();
 
 	_Point p1(_M_in->get_x(),_M_in->get_y(),
 			2*_d + _h);
@@ -87,5 +100,11 @@ bool MuonTracer::set_muon_out(Muon* _out){
 	if(this->_M_out)
 		return false;
 	this->_M_out = _out;
+	return true;
+}
+bool MuonTracer::set_through_lead_L(double _length){
+	if(this->_L_through_lead > 0.0)
+		return false;
+	this->_L_through_lead = _length;
 	return true;
 }

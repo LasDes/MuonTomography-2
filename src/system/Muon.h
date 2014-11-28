@@ -13,7 +13,7 @@
 #include<time.h>
 #include<stdlib.h>
 
-#include "util/Rand.h"
+#include "../util/Rand.h"
 
 class Muon {
 public:

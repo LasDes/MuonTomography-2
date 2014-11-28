@@ -50,6 +50,7 @@
 
 #include<vector>
 #include<iostream>
+#include<fstream>
 #include<cmath>
 
 #include "../util/Vector.h"
@@ -57,10 +58,10 @@ typedef Vector _Point;
 
 using namespace std;
 
-class Image_PoCA {
+class ImagePoCA {
 public:
-	Image_PoCA();
-	virtual ~Image_PoCA();
+	ImagePoCA();
+	virtual ~ImagePoCA();
 	void initial();
 	//Setter & Getter
 	void set_DETECT_H(double _h){
@@ -85,7 +86,7 @@ public:
 
 	//绘图
 	void plot();
-	void plot_simple();
+	void plot_simple(fstream& _fout);
 private:
 	//成像系统尺寸
 	double _MRPCs_D;
